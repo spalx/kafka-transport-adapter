@@ -24,7 +24,7 @@ class KafkaTransportAdapter implements TransportAdapter {
     await kafkaService.disconnectConsumer();
   }
 
-  async send(data: CorrelatedRequestDTO, timeout: number = 10000): Promise<CorrelatedResponseDTO> {
+  async send(data: CorrelatedRequestDTO, timeout?: number): Promise<CorrelatedResponseDTO> {
     if (!data.request_id) {
       data.request_id = uuidv4();
     }
@@ -35,7 +35,7 @@ class KafkaTransportAdapter implements TransportAdapter {
           this.pendingResponses.delete(data.request_id);
         }
         reject(new Error(`Timeout waiting for Kafka response on ${data.action}`));
-      }, timeout);
+      }, timeout || 10000);
 
       if (data.request_id) {
         this.pendingResponses.set(data.request_id, (msg) => {
@@ -56,7 +56,7 @@ class KafkaTransportAdapter implements TransportAdapter {
     });
   }
 
-  async sendResponse(data: CorrelatedRequestDTO, error: unknown | null, timeout: number = 10000): Promise<void> {
+  async sendResponse(data: CorrelatedRequestDTO, error: unknown | null): Promise<void> {
     let errorMessage = '';
     let status = 0;
     if (error !== null) {
