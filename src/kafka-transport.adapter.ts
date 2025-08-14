@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { CorrelatedRequestDTO, CorrelatedResponseDTO, TransportAdapter, transportService } from 'transport-pkg';
+import { AppRunPriority } from 'app-life-cycle-pkg';
 
 import KafkaService from './services/kafka.service';
 
@@ -60,6 +61,10 @@ class KafkaTransportAdapter implements TransportAdapter {
   async shutdown(): Promise<void> {
     await this.kafkaService.disconnectProducer();
     await this.kafkaService.disconnectConsumer();
+  }
+
+  getPriority(): number {
+    return AppRunPriority.Lowest;
   }
 
   async send(data: CorrelatedRequestDTO, timeout?: number): Promise<CorrelatedResponseDTO> {

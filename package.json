@@ -7,6 +7,7 @@
     "prepare": "npm run build"
   },
   "dependencies": {
+    "app-life-cycle-pkg": "git+git@github.com:spalx/app-life-cycle-pkg.git#1.0.4",
     "common-loggers-pkg": "git+git@github.com:spalx/common-loggers-pkg.git#1.0.1",
     "kafkajs": "^2.2.4",
     "transport-pkg": "git+git@github.com:spalx/transport-pkg.git#1.0.6",
