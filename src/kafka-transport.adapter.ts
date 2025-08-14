@@ -1,27 +1,65 @@
 import { v4 as uuidv4 } from 'uuid';
-import { CorrelatedRequestDTO, CorrelatedResponseDTO, TransportAdapter } from 'transport-pkg';
-import { ZodError } from 'zod';
+import { CorrelatedRequestDTO, CorrelatedResponseDTO, TransportAdapter, transportService } from 'transport-pkg';
 
-import kafkaService from './services/kafka.service';
-import { KafkaTopic } from './types/kafka';
+import KafkaService from './services/kafka.service';
 
 class KafkaTransportAdapter implements TransportAdapter {
   private pendingResponses: Map<string, (message: CorrelatedResponseDTO) => void> = new Map();
-  private topics: KafkaTopic[] = [];
+  private kafkaService: KafkaService;
 
-  constructor(topics: KafkaTopic[]) {
-    this.topics = topics;
+  constructor(clientId: string) {
+    this.kafkaService = new KafkaService('kafka:9092', clientId);
   }
 
   async init(): Promise<void> {
-    await this.prepareTopics();
-    await kafkaService.connectProducer();
-    await kafkaService.runConsumer();
+    const actionsToProduce: string[] = transportService.getSendableActions();
+    const actionsToConsume: Record<string, (data: CorrelatedRequestDTO) => Promise<void>> = transportService.getReceivableActions();
+
+    const allActions = Array.from(
+      new Set([
+        ...actionsToProduce,
+        ...Object.keys(actionsToConsume)
+      ])
+    );
+
+    const createTopics = allActions.map(action => ({
+      topic: action,
+      numPartitions: 1,
+      replicationFactor: 1
+    }));
+
+    await this.kafkaService.createTopics(createTopics);
+
+    for (const action in actionsToConsume) {
+      this.kafkaService.subscribe({
+        [action]: async (message: object) => {
+          actionsToConsume[action](message as CorrelatedRequestDTO);
+        }
+      });
+    }
+
+    for (const action of actionsToProduce) {
+      this.kafkaService.subscribe({
+        [`did.${action}`]: async (message: object) => {
+          const response = message as CorrelatedResponseDTO;
+          if (response.request_id && this.pendingResponses.has(response.request_id)) {
+            const resolve = this.pendingResponses.get(response.request_id);
+            if (resolve) {
+              resolve(response);
+              this.pendingResponses.delete(response.request_id);
+            }
+          }
+        }
+      });
+    }
+
+    await this.kafkaService.connectProducer();
+    await this.kafkaService.runConsumer();
   }
 
   async shutdown(): Promise<void> {
-    await kafkaService.disconnectProducer();
-    await kafkaService.disconnectConsumer();
+    await this.kafkaService.disconnectProducer();
+    await this.kafkaService.disconnectConsumer();
   }
 
   async send(data: CorrelatedRequestDTO, timeout?: number): Promise<CorrelatedResponseDTO> {
@@ -45,7 +83,7 @@ class KafkaTransportAdapter implements TransportAdapter {
       }
 
       try {
-        await kafkaService.sendMessage(data.action, data);
+        await this.kafkaService.sendMessage(data.action, data);
       } catch (err) {
         clearTimeout(timer);
         if (data.request_id) {
@@ -56,71 +94,8 @@ class KafkaTransportAdapter implements TransportAdapter {
     });
   }
 
-  async sendResponse(data: CorrelatedRequestDTO, error: unknown | null): Promise<void> {
-    let errorMessage = '';
-    let status = 0;
-    if (error !== null) {
-      errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
-      if (error instanceof ZodError) {
-        status = 400;
-        errorMessage = error.errors.map(e => e.message).join(', ');
-      } else if (this.isErrorWithCode(error)) {
-        status = error.code;
-      } else {
-        status = 500;
-      }
-    }
-
-    const response: CorrelatedResponseDTO = {
-      correlation_id: data.correlation_id,
-      request_id: data.request_id,
-      action: data.action,
-      data: data.data,
-      status: status,
-      error: errorMessage
-    };
-
-    await kafkaService.sendMessage(`did.${data.action}`, response);
-  }
-
-  private async prepareTopics(): Promise<void> {
-    for (const topicInfo of this.topics) {
-      const topicName = topicInfo.topic;
-
-      await kafkaService.createTopics([{
-        topic: topicName,
-        numPartitions: topicInfo.num_partitions,
-        replicationFactor: topicInfo.replication_factor
-      }]);
-
-      kafkaService.subscribe({
-        [topicName]: async (message: object) => {
-          topicInfo.on_message(message as CorrelatedRequestDTO);
-        }
-      });
-
-      kafkaService.subscribe({
-        [`did.${topicName}`]: async (message: object) => {
-          const response = message as CorrelatedResponseDTO;
-          if (response.request_id && this.pendingResponses.has(response.request_id)) {
-            const resolve = this.pendingResponses.get(response.request_id);
-            if (resolve) {
-              resolve(response);
-              this.pendingResponses.delete(response.request_id);
-            }
-          }
-        }
-      });
-    }
-  }
-
-  private isErrorWithCode(error: unknown): error is { code: number } {
-    return (
-      typeof error === 'object' &&
-      error !== null &&
-      Object.prototype.hasOwnProperty.call(error, 'code') &&
-      typeof (error as Record<string, unknown>).code === 'number'
-    );
+  async sendResponse(data: CorrelatedResponseDTO): Promise<void> {
+    await this.kafkaService.sendMessage(`did.${data.action}`, data);
   }
 }
 

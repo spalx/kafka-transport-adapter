@@ -1,6 +1,6 @@
 {
   "name": "kafka-transport-adapter",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -9,9 +9,8 @@
   "dependencies": {
     "common-loggers-pkg": "git+git@github.com:spalx/common-loggers-pkg.git#1.0.1",
     "kafkajs": "^2.2.4",
-    "transport-pkg": "git+git@github.com:spalx/transport-pkg.git#1.0.5",
-    "uuid": "^11.0.5",
-    "zod": "^3.25.49"
+    "transport-pkg": "git+git@github.com:spalx/transport-pkg.git#1.0.6",
+    "uuid": "^11.0.5"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",

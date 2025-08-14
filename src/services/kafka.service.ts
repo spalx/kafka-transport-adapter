@@ -19,9 +19,7 @@ class KafkaService {
   private admin!: Admin;
   private readonly retryLimit = 3;
 
-  constructor() {
-    const clientId: string = 'client_id'; //TODO
-    const broker: string = 'kafka:9092'; //TODO
+  constructor(broker: string, clientId: string) {
     const kafka = new Kafka({
       clientId,
       brokers: [broker],
@@ -44,17 +42,7 @@ class KafkaService {
 
     const existingTopics = await this.admin.listTopics();
 
-    // Expand the original topics to include "did." prefixed versions
-    const allTopics = topics.flatMap(({ topic, numPartitions, replicationFactor }) => [
-      { topic, numPartitions, replicationFactor },
-      {
-        topic: `did.${topic}`,
-        numPartitions,
-        replicationFactor,
-      },
-    ]);
-
-    const newTopics = allTopics.filter(
+    const newTopics = topics.filter(
       ({ topic }) => !existingTopics.includes(topic)
     );
 
@@ -82,7 +70,6 @@ class KafkaService {
   }
 
   async sendMessage(topic: string, message: object): Promise<void> {
-    await this.connectProducer();
     await this.producer.send({
       topic,
       messages: [{ value: JSON.stringify(message) }],
@@ -224,4 +211,4 @@ class KafkaService {
   }
 }
 
-export default new KafkaService();
+export default KafkaService;
