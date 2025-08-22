@@ -8,8 +8,8 @@ class KafkaTransportAdapter implements TransportAdapter {
   private pendingResponses: Map<string, (message: CorrelatedResponseDTO) => void> = new Map();
   private kafkaService: KafkaService;
 
-  constructor(clientId: string) {
-    this.kafkaService = new KafkaService('kafka:9092', clientId);
+  constructor(brokerUrl: string, clientId: string) {
+    this.kafkaService = new KafkaService(brokerUrl, clientId);
   }
 
   async init(): Promise<void> {
@@ -34,7 +34,7 @@ class KafkaTransportAdapter implements TransportAdapter {
     for (const action in actionsToConsume) {
       this.kafkaService.subscribe({
         [action]: async (message: object) => {
-          actionsToConsume[action](message as CorrelatedRequestDTO);
+          await actionsToConsume[action](message as CorrelatedRequestDTO);
         }
       });
     }
@@ -67,7 +67,7 @@ class KafkaTransportAdapter implements TransportAdapter {
     return AppRunPriority.Lowest;
   }
 
-  async send(data: CorrelatedRequestDTO, timeout?: number): Promise<CorrelatedResponseDTO> {
+  async send(data: CorrelatedRequestDTO, options: Record<string, unknown>, timeout?: number): Promise<CorrelatedResponseDTO> {
     if (!data.request_id) {
       data.request_id = uuidv4();
     }
