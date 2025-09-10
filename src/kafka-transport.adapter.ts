@@ -16,7 +16,7 @@ class KafkaTransportAdapter extends TransportAdapter implements IAppPkg {
 
   async init(): Promise<void> {
     const actionsToProduce: string[] = transportService.getBroadcastableActions();
-    const actionsToConsume: Record<string, (data: CorrelatedRequestDTO) => Promise<void>> = transportService.getSubscribedActions();
+    const actionsToConsume: Record<string, (data: CorrelatedRequestDTO) => Promise<void>> = transportService.getSubscribedBroadcastableActions();
 
     const allActions = Array.from(
       new Set([
@@ -57,11 +57,6 @@ class KafkaTransportAdapter extends TransportAdapter implements IAppPkg {
   async broadcast(data: CorrelatedRequestDTO): Promise<void> {
     if (!data.request_id) {
       data.request_id = uuidv4();
-    }
-
-    const actionsToProduce: string[] = transportService.getBroadcastableActions();
-    if (!actionsToProduce.includes(data.action)) {
-      throw new BadRequestError(`Invalid action provided: ${data.action}`);
     }
 
     await this.kafkaService.sendMessage(data.action, data);
