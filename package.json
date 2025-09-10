@@ -1,16 +1,17 @@
 {
   "name": "kafka-transport-adapter",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build"
   },
   "dependencies": {
-    "app-life-cycle-pkg": "git+git@github.com:spalx/app-life-cycle-pkg.git#1.0.4",
-    "common-loggers-pkg": "git+git@github.com:spalx/common-loggers-pkg.git#1.0.1",
+    "app-life-cycle-pkg": "git+git@github.com:spalx/app-life-cycle-pkg.git#1.0.5",
+    "common-loggers-pkg": "git+git@github.com:spalx/common-loggers-pkg.git#1.0.3",
     "kafkajs": "^2.2.4",
-    "transport-pkg": "git+git@github.com:spalx/transport-pkg.git#1.0.7",
+    "rest-pkg": "git+git@github.com:spalx/rest-pkg.git#1.0.3",
+    "transport-pkg": "git+git@github.com:spalx/transport-pkg.git#1.1.1",
     "uuid": "^11.0.5"
   },
   "devDependencies": {
