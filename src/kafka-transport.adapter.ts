@@ -1,7 +1,5 @@
-import { v4 as uuidv4 } from 'uuid';
-import { CorrelatedRequestDTO, CorrelatedResponseDTO, TransportAdapter, transportService } from 'transport-pkg';
+import { CorrelatedMessage, TransportAdapter, transportService } from 'transport-pkg';
 import { IAppPkg, AppRunPriority } from 'app-life-cycle-pkg';
-import { BadRequestError } from 'rest-pkg';
 
 import KafkaService from './services/kafka.service';
 
@@ -16,7 +14,7 @@ class KafkaTransportAdapter extends TransportAdapter implements IAppPkg {
 
   async init(): Promise<void> {
     const actionsToProduce: string[] = transportService.getBroadcastableActions();
-    const actionsToConsume: Record<string, (data: CorrelatedRequestDTO) => Promise<void>> = transportService.getSubscribedBroadcastableActions();
+    const actionsToConsume: Record<string, (req: CorrelatedMessage) => Promise<void>> = transportService.getSubscribedBroadcastableActions();
 
     const allActions = Array.from(
       new Set([
@@ -36,7 +34,7 @@ class KafkaTransportAdapter extends TransportAdapter implements IAppPkg {
     for (const action in actionsToConsume) {
       this.kafkaService.subscribe({
         [action]: async (message: object) => {
-          await actionsToConsume[action](message as CorrelatedRequestDTO);
+          await actionsToConsume[action](message as CorrelatedMessage);
         }
       });
     }
@@ -54,12 +52,8 @@ class KafkaTransportAdapter extends TransportAdapter implements IAppPkg {
     return AppRunPriority.Lowest;
   }
 
-  async broadcast(data: CorrelatedRequestDTO): Promise<void> {
-    if (!data.request_id) {
-      data.request_id = uuidv4();
-    }
-
-    await this.kafkaService.sendMessage(data.action, data);
+  async broadcast(req: CorrelatedMessage): Promise<void> {
+    await this.kafkaService.sendMessage(req.action, req);
   }
 }
 
