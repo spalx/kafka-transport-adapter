@@ -1,18 +1,24 @@
 import { CorrelatedMessage, TransportAdapter, transportService } from 'transport-pkg';
 import { IAppPkg, AppRunPriority } from 'app-life-cycle-pkg';
+import { serviceDiscoveryService, ServiceDTO } from 'service-discovery-pkg';
 
 import KafkaService from './services/kafka.service';
 
 class KafkaTransportAdapter extends TransportAdapter implements IAppPkg {
-  private kafkaService: KafkaService;
+  private kafkaService: KafkaService | null = null;
+  private clientId: string = '';
 
-  constructor(brokerUrl: string, clientId: string) {
+  constructor(clientId: string) {
     super();
 
-    this.kafkaService = new KafkaService(brokerUrl, clientId);
+    this.clientId = clientId;
   }
 
   async init(): Promise<void> {
+    const kafkaService: ServiceDTO = await serviceDiscoveryService.getService('kafka');
+
+    this.kafkaService = new KafkaService(`${kafkaService.host}:${kafkaService.port}`, this.clientId);
+
     const actionsToProduce: string[] = transportService.getBroadcastableActions();
     const actionsToConsume: Record<string, (req: CorrelatedMessage) => Promise<void>> = transportService.getSubscribedBroadcastableActions();
 
@@ -44,8 +50,8 @@ class KafkaTransportAdapter extends TransportAdapter implements IAppPkg {
   }
 
   async shutdown(): Promise<void> {
-    await this.kafkaService.disconnectProducer();
-    await this.kafkaService.disconnectConsumer();
+    await this.kafkaService?.disconnectProducer();
+    await this.kafkaService?.disconnectConsumer();
   }
 
   getPriority(): number {
@@ -53,7 +59,7 @@ class KafkaTransportAdapter extends TransportAdapter implements IAppPkg {
   }
 
   async broadcast(req: CorrelatedMessage): Promise<void> {
-    await this.kafkaService.sendMessage(req.action, req);
+    await this.kafkaService?.sendMessage(req.action, req);
   }
 }
 
