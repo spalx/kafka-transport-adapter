@@ -58,6 +58,17 @@ class KafkaTransportAdapter extends TransportAdapter implements IAppPkg {
     return AppRunPriority.Lowest;
   }
 
+  getName(): string {
+    return 'kafka-transport-adapter';
+  }
+
+  getDependencies(): IAppPkg[] {
+    return [
+      transportService,
+      serviceDiscoveryService
+    ];
+  }
+
   async broadcast(req: CorrelatedMessage): Promise<void> {
     await this.kafkaService?.sendMessage(req.action, req);
   }
