@@ -14,10 +14,9 @@ class KafkaService {
   private isProducerConnected: boolean = false;
   private isConsumerConnected: boolean = false;
 
-  private producer!: Producer;
-  private consumer!: Consumer;
-  private admin!: Admin;
-  private readonly retryLimit = 3;
+  private producer: Producer;
+  private consumer: Consumer;
+  private admin: Admin;
 
   constructor(broker: string, clientId: string) {
     const kafka = new Kafka({
@@ -31,13 +30,7 @@ class KafkaService {
     this.admin = kafka.admin();
   }
 
-  async createTopics(
-    topics: {
-      topic: string;
-      numPartitions: number;
-      replicationFactor: number;
-    }[]
-  ): Promise<void> {
+  async createTopics(topics: { topic: string; numPartitions: number; replicationFactor: number; }[]): Promise<void> {
     await this.admin.connect();
 
     const existingTopics = await this.admin.listTopics();
@@ -100,9 +93,7 @@ class KafkaService {
     }
   }
 
-  subscribe(
-    topics: Record<string, (message: KafkaMessage) => Promise<void>>
-  ): void {
+  subscribe(topics: Record<string, (message: KafkaMessage) => Promise<void>>): void {
     Object.assign(this.topicHandlers, topics);
   }
 
@@ -114,63 +105,25 @@ class KafkaService {
     await this.connectConsumer();
     const topicsKeys = Object.keys(this.topicHandlers);
 
-    await this.consumer.subscribe({
-      topics: topicsKeys,
-      fromBeginning: false,
-    });
+    await this.consumer.subscribe({ topics: topicsKeys, fromBeginning: false });
     logger.info('Subscribed to Kafka topics: ' + topicsKeys.join(', '));
 
     await this.consumer.run({
       eachMessage: async ({ topic, message }) => {
-        kafkaLogger.info(
-          `Received message: ${message.value?.toString()} from ${topic}`
-        );
+        kafkaLogger.info(`Received message: ${message.value?.toString()} from ${topic}`);
 
         if (this.topicHandlers[topic] && message.value) {
           try {
             const parsedMessage = JSON.parse(message.value.toString());
-            const retryCount = parsedMessage.retryCount || 0;
 
             try {
               await this.topicHandlers[topic](parsedMessage);
-              kafkaLogger.info(
-                `Message processed successfully for topic ${topic}`
-              );
+              kafkaLogger.info(`Message processed successfully for topic ${topic}`);
             } catch (processingError) {
-              kafkaLogger.error(
-                `Error processing message for topic ${topic}:`,
-                processingError
-              );
-              if (retryCount < this.retryLimit) {
-                // Retry the message by sending it back to the same topic
-                kafkaLogger.warn(
-                  `Retrying message for topic ${topic} (Attempt: ${
-                    retryCount + 1
-                  })`
-                );
-
-                await this.producer.send({
-                  topic,
-                  messages: [
-                    {
-                      value: JSON.stringify({
-                        ...parsedMessage,
-                        retryCount: retryCount + 1,
-                      }),
-                    },
-                  ],
-                });
-              } else {
-                kafkaLogger.error(
-                  `Max retry attempts reached for topic ${topic}}`
-                );
-              }
+              kafkaLogger.error(`Error processing message for topic ${topic}:`, processingError);
             }
           } catch (parsingError) {
-            kafkaLogger.error(
-              `Failed to parse message for topic ${topic}`,
-              parsingError
-            );
+            kafkaLogger.error(`Failed to parse message for topic ${topic}`, parsingError);
           }
         } else {
           kafkaLogger.warn(`No handler defined for topic: ${topic}`);
