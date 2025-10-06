@@ -1,20 +1,20 @@
 {
   "name": "kafka-transport-adapter",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build"
   },
   "dependencies": {
-    "app-life-cycle-pkg": "git+git@github.com:spalx/app-life-cycle-pkg.git#1.0.6",
-    "common-loggers-pkg": "git+git@github.com:spalx/common-loggers-pkg.git#1.0.3",
+    "app-life-cycle-pkg": "git+git@github.com:spalx/app-life-cycle-pkg.git#1.0.7",
+    "common-loggers-pkg": "git+git@github.com:spalx/common-loggers-pkg.git#1.0.4",
     "kafkajs": "^2.2.4",
-    "service-discovery-pkg": "git+git@github.com:spalx/service-discovery-pkg.git#1.0.2",
-    "transport-pkg": "git+git@github.com:spalx/transport-pkg.git#1.1.7"
+    "service-discovery-pkg": "git+git@github.com:spalx/service-discovery-pkg.git#1.0.3",
+    "transport-pkg": "git+git@github.com:spalx/transport-pkg.git#1.1.8"
   },
   "devDependencies": {
-    "@types/node": "^22.15.21",
-    "typescript": "^5.3.3"
+    "@types/node": "^24.7.0",
+    "typescript": "^5.9.3"
   }
 }
