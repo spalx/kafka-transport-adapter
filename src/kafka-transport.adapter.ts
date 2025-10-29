@@ -40,7 +40,7 @@ class KafkaTransportAdapter extends TransportAdapter implements IAppPkg {
     for (const action in actionsToConsume) {
       this.kafkaService.subscribe({
         [action]: async (message: object) => {
-          await actionsToConsume[action](message as CorrelatedMessage);
+          await actionsToConsume[action](CorrelatedMessage.fromObject(message));
         }
       });
     }
