@@ -13,6 +13,7 @@ class KafkaService {
   private topicHandlers: Record<string, (message: KafkaMessage) => Promise<void>> = {};
   private isProducerConnected: boolean = false;
   private isConsumerConnected: boolean = false;
+  private isConsumerJoined: boolean = false;
 
   private producer: Producer;
   private consumer: Consumer;
@@ -28,6 +29,12 @@ class KafkaService {
     this.producer = kafka.producer();
     this.consumer = kafka.consumer({ groupId: `${clientId}-group` });
     this.admin = kafka.admin();
+
+    const { GROUP_JOIN } = this.consumer.events;
+    this.consumer.on(GROUP_JOIN, () => {
+      logger.info('Kafka consumer joined');
+      this.isConsumerJoined = true;
+    });
   }
 
   async createTopics(topics: { topic: string; numPartitions: number; replicationFactor: number; }[]): Promise<void> {
@@ -84,6 +91,7 @@ class KafkaService {
     if (this.isConsumerConnected) {
       return;
     }
+
     try {
       await this.consumer.connect();
       this.isConsumerConnected = true;
@@ -133,7 +141,7 @@ class KafkaService {
   }
 
   async disconnectConsumer(): Promise<void> {
-    if (!this.isConsumerConnected) {
+    if (!this.isConsumerConnected || !this.isConsumerJoined) {
       return;
     }
 

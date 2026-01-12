@@ -50,8 +50,8 @@ class KafkaTransportAdapter extends TransportAdapter implements IAppPkg {
   }
 
   async shutdown(): Promise<void> {
-    await this.kafkaService?.disconnectProducer();
     await this.kafkaService?.disconnectConsumer();
+    await this.kafkaService?.disconnectProducer();
   }
 
   getPriority(): number {
