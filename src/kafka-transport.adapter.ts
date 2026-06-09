@@ -1,6 +1,6 @@
-import { CorrelatedMessage, TransportAdapter, transportService } from 'transport-pkg';
-import { IAppPkg, AppRunPriority } from 'app-life-cycle-pkg';
-import { serviceDiscoveryService, ServiceDTO } from 'service-discovery-pkg';
+import { CorrelatedMessage, TransportAdapter, transportService } from '@spalx/transport-pkg';
+import { IAppPkg, AppRunPriority } from '@spalx/app-life-cycle-pkg';
+import { serviceDiscoveryService, ServiceDTO } from '@spalx/service-discovery-pkg';
 
 import KafkaService from './services/kafka.service';
 

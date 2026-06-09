@@ -7,7 +7,7 @@ import {
   LogEntry,
   KafkaMessage,
 } from 'kafkajs';
-import { logger, kafkaLogger } from 'common-loggers-pkg';
+import { logger, kafkaLogger } from '@spalx/common-loggers-pkg';
 
 class KafkaService {
   private topicHandlers: Record<string, (message: KafkaMessage) => Promise<void>> = {};
